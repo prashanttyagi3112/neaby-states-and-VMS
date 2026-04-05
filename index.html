@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VMS State Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f0f4ff;
+  --white: #ffffff;
+  --navy: #0a1628;
+  --navy2: #112240;
+  --blue: #1e56c8;
+  --blue-light: #3b78f0;
+  --cyan: #00c2cb;
+  --green: #00b37a;
+  --amber: #f59e0b;
+  --red: #ef4444;
+  --text: #0a1628;
+  --muted: #64748b;
+  --light: #94a3b8;
+  --border: #dde5f4;
+  --shadow-sm: 0 1px 3px rgba(10,22,40,0.06), 0 1px 2px rgba(10,22,40,0.04);
+  --shadow: 0 4px 16px rgba(10,22,40,0.08), 0 2px 4px rgba(10,22,40,0.04);
+  --shadow-lg: 0 20px 60px rgba(10,22,40,0.12), 0 8px 20px rgba(10,22,40,0.06);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── Background ── */
+.bg-mesh {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% -10%, rgba(30,86,200,0.1) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 110%, rgba(0,194,203,0.08) 0%, transparent 60%),
+    linear-gradient(160deg, #f0f4ff 0%, #e8eeff 50%, #f0f8ff 100%);
+  pointer-events: none;
+}
+
+.grid-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-image:
+    linear-gradient(rgba(30,86,200,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(30,86,200,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+}
+
+/* ── Layout ── */
+.wrapper {
+  position: relative;
+  z-index: 1;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 60px 24px 100px;
+}
+
+/* ── Header ── */
+.header {
+  text-align: center;
+  margin-bottom: 56px;
+  animation: fadeDown 0.6s cubic-bezier(0.16,1,0.3,1) both;
+}
+
+.logo-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--navy);
+  color: #fff;
+  padding: 6px 18px 6px 10px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 28px;
+  box-shadow: var(--shadow);
+}
+
+.logo-dot {
+  width: 24px; height: 24px;
+  background: linear-gradient(135deg, var(--blue-light), var(--cyan));
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px;
+}
+
+h1 {
+  font-size: clamp(36px, 6vw, 60px);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  color: var(--navy);
+  margin-bottom: 16px;
+}
+
+h1 span {
+  background: linear-gradient(135deg, var(--blue) 0%, var(--cyan) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.subtitle {
+  font-size: 16px;
+  color: var(--muted);
+  font-weight: 400;
+  max-width: 420px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* ── Stats Bar ── */
+.stats-bar {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  margin-top: 32px;
+  flex-wrap: wrap;
+}
+
+.stat {
+  text-align: center;
+}
+
+.stat-num {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--blue);
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+/* ── Search ── */
+.search-section {
+  animation: fadeUp 0.6s 0.1s cubic-bezier(0.16,1,0.3,1) both;
+  margin-bottom: 32px;
+}
+
+.search-wrap {
+  position: relative;
+  background: var(--white);
+  border-radius: 20px;
+  box-shadow: var(--shadow-lg);
+  border: 2px solid transparent;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  overflow: visible;
+}
+
+.search-wrap:focus-within {
+  border-color: var(--blue);
+  box-shadow: var(--shadow-lg), 0 0 0 4px rgba(30,86,200,0.1);
+}
+
+.search-inner {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px 6px 24px;
+  gap: 12px;
+}
+
+.search-icon-wrap {
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--blue);
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+#stateInput {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-family: 'Outfit', sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text);
+  background: transparent;
+  padding: 16px 0;
+}
+
+#stateInput::placeholder { color: var(--light); font-weight: 400; }
+
+.search-btn {
+  background: linear-gradient(135deg, var(--blue) 0%, var(--blue-light) 100%);
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  padding: 14px 28px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 4px 12px rgba(30,86,200,0.3);
+}
+
+.search-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(30,86,200,0.4);
+}
+
+/* ── Dropdown ── */
+.dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0; right: 0;
+  background: var(--white);
+  border-radius: 16px;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  z-index: 200;
+  display: none;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.dropdown.show { display: block; animation: dropIn 0.2s ease; }
+
+@keyframes dropIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 20px;
+  cursor: pointer;
+  transition: background 0.12s;
+  border-bottom: 1px solid var(--border);
+}
+
+.dropdown-item:last-child { border-bottom: none; }
+.dropdown-item:hover, .dropdown-item.active { background: #f0f4ff; }
+
+.di-abbr {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--blue);
+  background: rgba(30,86,200,0.08);
+  padding: 3px 9px;
+  border-radius: 6px;
+  min-width: 42px;
+  text-align: center;
+}
+
+.di-name { font-size: 15px; font-weight: 500; color: var(--text); }
+
+.di-compact {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.di-compact.c { background: rgba(0,179,122,0.1); color: var(--green); }
+.di-compact.s { background: rgba(245,158,11,0.1); color: var(--amber); }
+
+/* ── Result Card ── */
+#resultCard {
+  display: none;
+  animation: fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) both;
+}
+
+#resultCard.show { display: block; }
+
+/* State Hero */
+.state-hero {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy2) 100%);
+  border-radius: 24px 24px 0 0;
+  padding: 36px 40px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.state-hero::before {
+  content: '';
+  position: absolute;
+  top: -60px; right: -60px;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(30,86,200,0.3) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.state-hero::after {
+  content: '';
+  position: absolute;
+  bottom: -40px; left: 30%;
+  width: 160px; height: 160px;
+  background: radial-gradient(circle, rgba(0,194,203,0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero-left { display: flex; align-items: center; gap: 24px; z-index: 1; }
+
+.abbr-box {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.15);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 16px 20px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 32px;
+  font-weight: 500;
+  color: #fff;
+  letter-spacing: 0.05em;
+  min-width: 90px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.hero-info {}
+
+.hero-state-name {
+  font-size: clamp(24px, 4vw, 36px);
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.hero-badges {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 14px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.badge-compact {
+  background: rgba(0,179,122,0.2);
+  color: #4ade80;
+  border: 1px solid rgba(0,179,122,0.3);
+}
+
+.badge-single {
+  background: rgba(245,158,11,0.2);
+  color: #fcd34d;
+  border: 1px solid rgba(245,158,11,0.3);
+}
+
+.badge-tz {
+  background: rgba(0,194,203,0.15);
+  color: #67e8f9;
+  border: 1px solid rgba(0,194,203,0.25);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.hero-right { z-index: 1; text-align: right; }
+
+.hero-count {
+  font-size: 44px;
+  font-weight: 800;
+  color: rgba(255,255,255,0.15);
+  line-height: 1;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Card body */
+.card-body {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 24px 24px;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+
+.section {
+  padding: 28px 40px;
+  border-bottom: 1px solid var(--border);
+}
+
+.section:last-child { border-bottom: none; }
+
+.section-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+
+.section-label-icon {
+  width: 24px; height: 24px;
+  background: var(--bg);
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px;
+}
+
+/* VMS Tags */
+.tags-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.vms-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, rgba(30,86,200,0.06) 0%, rgba(0,194,203,0.04) 100%);
+  border: 1px solid rgba(30,86,200,0.15);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--navy2);
+  transition: all 0.15s;
+  cursor: default;
+}
+
+.vms-tag:hover {
+  background: linear-gradient(135deg, rgba(30,86,200,0.12) 0%, rgba(0,194,203,0.08) 100%);
+  border-color: rgba(30,86,200,0.3);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.vms-tag-dot {
+  width: 6px; height: 6px;
+  background: var(--blue);
+  border-radius: 50%;
+}
+
+.notes-tag {
+  background: linear-gradient(135deg, rgba(168,85,247,0.06) 0%, rgba(139,92,246,0.04) 100%);
+  border-color: rgba(139,92,246,0.15);
+  color: #5b21b6;
+}
+
+.notes-tag .vms-tag-dot { background: #7c3aed; }
+
+.notes-tag:hover {
+  background: linear-gradient(135deg, rgba(168,85,247,0.12) 0%, rgba(139,92,246,0.08) 100%);
+  border-color: rgba(139,92,246,0.3);
+}
+
+/* Two column */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 1px solid var(--border);
+}
+
+.two-col .section { border-bottom: none; border-right: 1px solid var(--border); }
+.two-col .section:last-child { border-right: none; }
+
+/* Bordering states */
+.border-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.border-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.18s;
+  text-decoration: none;
+}
+
+.border-chip:hover {
+  background: var(--white);
+  border-color: var(--blue);
+  box-shadow: var(--shadow);
+  transform: translateY(-2px);
+}
+
+.bc-abbr {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--blue);
+  background: rgba(30,86,200,0.08);
+  padding: 2px 8px;
+  border-radius: 5px;
+}
+
+.bc-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.bc-arrow {
+  color: var(--light);
+  font-size: 12px;
+  margin-left: 2px;
+}
+
+/* Empty */
+.empty-val {
+  color: var(--light);
+  font-style: italic;
+  font-size: 14px;
+}
+
+/* Info value */
+.info-val {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+/* ── Empty State ── */
+#emptyState {
+  text-align: center;
+  padding: 80px 24px;
+  animation: fadeUp 0.5s 0.2s cubic-bezier(0.16,1,0.3,1) both;
+}
+
+.empty-visual {
+  width: 120px; height: 120px;
+  background: var(--white);
+  border-radius: 32px;
+  margin: 0 auto 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 52px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+}
+
+.empty-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 8px;
+}
+
+.empty-sub { font-size: 15px; color: var(--muted); max-width: 340px; margin: 0 auto; line-height: 1.6; }
+
+/* Suggested pills */
+.suggestions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 24px;
+}
+
+.sugg-pill {
+  background: var(--white);
+  border: 1.5px solid var(--border);
+  border-radius: 100px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--navy2);
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: var(--shadow-sm);
+}
+
+.sugg-pill:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+  background: rgba(30,86,200,0.04);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+/* ── Animations ── */
+@keyframes fadeDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Footer ── */
+.footer {
+  text-align: center;
+  margin-top: 64px;
+  color: var(--light);
+  font-size: 13px;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .wrapper { padding: 40px 16px 80px; }
+  .state-hero { padding: 24px; flex-direction: column; }
+  .hero-right { display: none; }
+  .section { padding: 20px 24px; }
+  .two-col { grid-template-columns: 1fr; }
+  .two-col .section { border-right: none; border-bottom: 1px solid var(--border); }
+  .two-col .section:last-child { border-bottom: none; }
+  .search-inner { padding: 4px 8px 4px 16px; }
+  .search-btn { padding: 12px 18px; font-size: 14px; }
+  #stateInput { font-size: 16px; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg-mesh"></div>
+<div class="grid-overlay"></div>
+
+<div class="wrapper">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo-bar">
+      <div class="logo-dot">⚡</div>
+      VMS Intelligence Platform
+    </div>
+    <h1>US State <span>VMS Lookup</span></h1>
+    <p class="subtitle">Instantly surface VMS vendors, bordering states, compact status & time zones for any US state.</p>
+    <div class="stats-bar">
+      <div class="stat"><div class="stat-num">50</div><div class="stat-label">States</div></div>
+      <div class="stat"><div class="stat-num">38</div><div class="stat-label">Compact States</div></div>
+      <div class="stat"><div class="stat-num">20+</div><div class="stat-label">VMS Vendors</div></div>
+      <div class="stat"><div class="stat-num">4</div><div class="stat-label">Time Zones</div></div>
+    </div>
+  </div>
+
+  <!-- Search -->
+  <div class="search-section">
+    <div class="search-wrap">
+      <div class="search-inner">
+        <div class="search-icon-wrap">🔍</div>
+        <input type="text" id="stateInput" placeholder="Search state name or abbreviation…" autocomplete="off" spellcheck="false">
+        <button class="search-btn" onclick="triggerSearch()">Look Up</button>
+      </div>
+      <div class="dropdown" id="dropdown"></div>
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div id="resultCard"></div>
+
+  <!-- Empty State -->
+  <div id="emptyState">
+    <div class="empty-visual">🗺️</div>
+    <div class="empty-title">Search any US State</div>
+    <p class="empty-sub">Type a state name or abbreviation above to instantly pull up all VMS details.</p>
+    <div class="suggestions">
+      <span class="sugg-pill" onclick="quickSelect('Texas')">Texas</span>
+      <span class="sugg-pill" onclick="quickSelect('California')">California</span>
+      <span class="sugg-pill" onclick="quickSelect('New York')">New York</span>
+      <span class="sugg-pill" onclick="quickSelect('Florida')">Florida</span>
+      <span class="sugg-pill" onclick="quickSelect('Tennessee')">Tennessee</span>
+    </div>
+  </div>
+
+  <div class="footer">Built for Recruiters · All 50 States · Data from VMS Table</div>
+</div>
+
+<script>
+const STATES = [{"State":"Alabama","Abb.":"AL","VMS":"Aya, Hallmark-ASC, Medefis","Notes / Vendors":"AYA, MDFS, Hallmark (Ascension)","Compact":"Compact","Time Zone":"CST","Bordering States":"FL, GA, MS, TN"},{"State":"Alaska","Abb.":"AK","VMS":"Medefis, Aya","Notes / Vendors":"AYA, MDFS, Liquid Compass (Parallon)","Compact":"Single","Time Zone":"HST","Bordering States":""},{"State":"Arizona","Abb.":"AZ","VMS":"AHSA, Medefis, Healthtrust, FocusOne","Notes / Vendors":"AYA, MDFS, AHSA, FocusOne, TRS, MedSol","Compact":"Compact","Time Zone":"MST","Bordering States":"CA, CO, NV, NM, UT"},{"State":"Arkansas","Abb.":"AR","VMS":"Aya, Medefis, Healthtrust, TRS","Notes / Vendors":"AYA, Healthtrust, Shiftwise, Supplemental","Compact":"Compact","Time Zone":"CST","Bordering States":"LA, MS, MO, OK, TN, TX"},{"State":"California","Abb.":"CA","VMS":"Kaiser, Shiftwise, Hallmark, HealthTrust, Aya","Notes / Vendors":"AYA, MedSol, MDFS, Fieldglass, Hallmark, Intellify","Compact":"Single","Time Zone":"PST","Bordering States":"AZ, NV, OR"},{"State":"Colorado","Abb.":"CO","VMS":"Medefis, HealthTrust, TRS","Notes / Vendors":"","Compact":"Compact","Time Zone":"MST","Bordering States":"AZ, KS, NE, NM, OK, UT, WY"},{"State":"Connecticut","Abb.":"CT","VMS":"Shiftwise","Notes / Vendors":"","Compact":"Single","Time Zone":"EST","Bordering States":"MA, NY, RI"},{"State":"Delaware","Abb.":"DE","VMS":"Aya","Notes / Vendors":"","Compact":"Compact","Time Zone":"EST","Bordering States":"MD, NJ, PA"},{"State":"Florida","Abb.":"FL","VMS":"Aya, HealthTrust, Hallmark, Intellify","Notes / Vendors":"","Compact":"Compact","Time Zone":"EST, CST","Bordering States":"AL, GA"},{"State":"Georgia","Abb.":"GA","VMS":"Aya, HWL, Shiftwise, Atrium, PrimeHealth","Notes / Vendors":"MedSol, Shiftwise, HWL, AYA","Compact":"Compact","Time Zone":"EST","Bordering States":"AL, FL, NC, SC, TN"},{"State":"Hawaii","Abb.":"HI","VMS":"Medefis, Kaiser, AYA","Notes / Vendors":"","Compact":"Single","Time Zone":"HST","Bordering States":""},{"State":"Idaho","Abb.":"ID","VMS":"Medefis, MedSol, Davin","Notes / Vendors":"","Compact":"Compact","Time Zone":"MST, PST","Bordering States":"MT, NV, OR, UT, WA, WY"},{"State":"Illinois","Abb.":"IL","VMS":"AYA, AHSA, FocusOne, Magnit (Carle), Medefis, MedSol, Supplemental, Hallmark","Notes / Vendors":"AHSA, AYA, FocusOne","Compact":"Compact","Time Zone":"CST","Bordering States":"IN, IA, MI, KY, MO, WI"},{"State":"Indiana","Abb.":"IN","VMS":"Aya, Hallmark, MedSol, FocusOne, TRS","Notes / Vendors":"AYA, MedSol, Ascension (Hallmark)","Compact":"Compact","Time Zone":"EST, CST","Bordering States":"IL, KY, MI, OH"},{"State":"Iowa","Abb.":"IA","VMS":"AHSA, Hallmark, Supplemental Health","Notes / Vendors":"","Compact":"Compact","Time Zone":"CST","Bordering States":"IL, MN, MO, NE, SD, WI"},{"State":"Kansas","Abb.":"KS","VMS":"Hallmark, TRS, Supplemental Health","Notes / Vendors":"","Compact":"Compact","Time Zone":"CST, MST","Bordering States":"CO, NE, MO, OK"},{"State":"Kentucky","Abb.":"KY","VMS":"AYA, HealthTrust","Notes / Vendors":"","Compact":"Compact","Time Zone":"EST, CST","Bordering States":"IL, IN, MO, OH, TN, VA, WV"},{"State":"Louisiana","Abb.":"LA","VMS":"","Notes / Vendors":"","Compact":"Compact","Time Zone":"CST","Bordering States":"TX, AR, MS"},{"State":"Maine","Abb.":"ME","VMS":"Medefis","Notes / Vendors":"","Compact":"Compact","Time Zone":"EST","Bordering States":"NH"},{"State":"Maryland","Abb.":"MD","VMS":"Hallmark-ASC, AYA, Medefis, AHSA","Notes / Vendors":"","Compact":"Compact","Time Zone":"EST","Bordering States":"DE, PA, VA, WV, DC"},{"State":"Massachusetts","Abb.":"MA","VMS":"AHSA, Intellify, AYA","Notes / Vendors":"HWL","Compact":"Single","Time Zone":"EST","Bordering States":"CT, NH, NY, RI, VT"},{"State":"Michigan","Abb.":"MI","VMS":"Magnit (Henry Ford), Hallmark","Notes / Vendors":"Ascension, AHSA, AYA, MDFS","Compact":"Single","Time Zone":"EST, CST","Bordering States":"IL, IN, MN, OH, WI"},{"State":"Minnesota","Abb.":"MN","VMS":"Aya, AHSA, Medefis","Notes / Vendors":"Intellify","Compact":"Single","Time Zone":"CST","Bordering States":"IA, MI, ND, SD, WI"},{"State":"Mississippi","Abb.":"MS","VMS":"","Notes / Vendors":"","Compact":"Compact","Time Zone":"CST","Bordering States":"AL, AR, LA, TN"},{"State":"Missouri","Abb.":"MO","VMS":"AYA, HealthTrust, Medefis","Notes / Vendors":"","Compact":"Compact","Time Zone":"CST","Bordering States":"AR, IL, IA, KS, KY, NE, OK, TN"},{"State":"Montana","Abb.":"MT","VMS":"Davin","Notes / Vendors":"","Compact":"Compact","Time Zone":"MST","Bordering States":"ID, ND, SD, WY"},{"State":"Nebraska","Abb.":"NE","VMS":"FocusOne, Medefis","Notes / Vendors":"","Compact":"Compact","Time Zone":"CST, MST","Bordering States":"CO, IA, KS, MO, SD, WY"},{"State":"Nevada","Abb.":"NV","VMS":"","Notes / Vendors":"","Compact":"Single","Time Zone":"PST, MST","Bordering States":"AZ, CA, ID, OR, UT"},{"State":"New Hampshire","Abb.":"NH","VMS":"","Notes / Vendors":"","Compact":"Compact","Time Zone":"EST","Bordering States":"ME, MA, VT"},{"State":"New Jersey","Abb.":"NJ","VMS":"AHS, Magnit (Hackensack), Prime Health, Hallmark","Notes / Vendors":"","Compact":"Compact","Time Zone":"EST","Bordering States":"DE, NY, PA"},{"State":"New Mexico","Abb.":"NM","VMS":"Aya, Medefis, FocusOne","Notes / Vendors":"","Compact":"Compact","Time Zone":"MST","Bordering States":"AZ, CO, OK, TX, UT"},{"State":"New York","Abb.":"NY","VMS":"Magnit (NYCHH), Shiftwise, Adaptive, HWL, Davin, Liquid Compass, TriageStaff, Medefis","Notes / Vendors":"NYC & Upstate split vendors","Compact":"Single","Time Zone":"EST","Bordering States":"CT, MA, NJ, PA, RI, VT"},{"State":"North Carolina","Abb.":"NC","VMS":"Magnit, Aya, Medefis","Notes / Vendors":"","Compact":"Compact","Time Zone":"EST","Bordering States":"GA, SC, TN, VA"},{"State":"North Dakota","Abb.":"ND","VMS":"FocusOne","Notes / Vendors":"Altru Health","Compact":"Compact","Time Zone":"CST, MST","Bordering States":"MN, MT, SD"},{"State":"Ohio","Abb.":"OH","VMS":"Aya, Hallmark, Magnit","Notes / Vendors":"AYA, Hallmark, Summa Health, MDFS","Compact":"Compact","Time Zone":"EST","Bordering States":"IN, KY, MI, PA, WV"},{"State":"Oklahoma","Abb.":"OK","VMS":"Hallmark, Adaptive, Medefis, TRS","Notes / Vendors":"","Compact":"Compact","Time Zone":"CST","Bordering States":"AR, CO, KS, MO, NM, TX"},{"State":"Oregon","Abb.":"OR","VMS":"Aya, MedSol, TRS, FocusOne, Kaiser, Medefis","Notes / Vendors":"","Compact":"Single","Time Zone":"PST, MST","Bordering States":"CA, ID, NV, WA"},{"State":"Pennsylvania","Abb.":"PA","VMS":"Aya, Shiftwise, Medefis, Supplemental Health","Notes / Vendors":"","Compact":"Compact","Time Zone":"EST","Bordering States":"DE, MD, NJ, NY, OH, WV"},{"State":"Rhode Island","Abb.":"RI","VMS":"Aya","Notes / Vendors":"","Compact":"Compact","Time Zone":"EST","Bordering States":"CT, MA"},{"State":"South Carolina","Abb.":"SC","VMS":"","Notes / Vendors":"","Compact":"Compact","Time Zone":"EST","Bordering States":"GA, NC"},{"State":"South Dakota","Abb.":"SD","VMS":"FocusOne","Notes / Vendors":"","Compact":"Compact","Time Zone":"CST, MST","Bordering States":"IA, MN, MT, NE, ND, WY"},{"State":"Tennessee","Abb.":"TN","VMS":"Hallmark-ASC, HealthTrust, Aya, Supplemental, Intellify, AHSA","Notes / Vendors":"AYA, MDFS","Compact":"Compact","Time Zone":"EST, CST","Bordering States":"AL, AR, GA, KY, MS, MO, NC, VA"},{"State":"Texas","Abb.":"TX","VMS":"Hallmark-ASC, AYA, Supplemental, Medefis, TRS, HealthTrust","Notes / Vendors":"","Compact":"Compact","Time Zone":"CST, MST","Bordering States":"AR, LA, NM, OK"},{"State":"Utah","Abb.":"UT","VMS":"Medefis","Notes / Vendors":"","Compact":"Compact","Time Zone":"MST","Bordering States":"AZ, CO, ID, NV, NM, WY"},{"State":"Vermont","Abb.":"VT","VMS":"","Notes / Vendors":"","Compact":"Compact","Time Zone":"EST","Bordering States":"MA, NH, NY"},{"State":"Virginia","Abb.":"VA","VMS":"AYA, Medefis, HealthTrust","Notes / Vendors":"","Compact":"Compact","Time Zone":"EST","Bordering States":"KY, MD, NC, TN, WV, DC"},{"State":"Washington","Abb.":"WA","VMS":"Aya, Medefis, Simplify","Notes / Vendors":"","Compact":"Compact","Time Zone":"PST","Bordering States":"ID, OR"},{"State":"West Virginia","Abb.":"WV","VMS":"","Notes / Vendors":"","Compact":"Compact","Time Zone":"EST","Bordering States":"KY, MD, OH, PA, VA"},{"State":"Wisconsin","Abb.":"WI","VMS":"Hallmark-ASC, AYA, Medefis, AHSA, Supplemental Health","Notes / Vendors":"","Compact":"Compact","Time Zone":"CST","Bordering States":"IL, MI, IA, MN"},{"State":"Wyoming","Abb.":"WY","VMS":"","Notes / Vendors":"","Compact":"Compact","Time Zone":"MST","Bordering States":"CO, MT, NE, SD"}];
+
+const abbrMap = {};
+STATES.forEach(s => { abbrMap[s["Abb."]] = s.State; });
+
+const input = document.getElementById('stateInput');
+const dropdown = document.getElementById('dropdown');
+const resultCard = document.getElementById('resultCard');
+const emptyState = document.getElementById('emptyState');
+
+let filtered = [], activeIdx = -1;
+
+input.addEventListener('input', () => {
+  const q = input.value.trim().toLowerCase();
+  activeIdx = -1;
+  if (!q) { dropdown.classList.remove('show'); return; }
+  filtered = STATES.filter(s =>
+    s.State.toLowerCase().includes(q) || s["Abb."].toLowerCase() === q
+  ).slice(0, 8);
+  renderDropdown();
+});
+
+input.addEventListener('keydown', e => {
+  const items = dropdown.querySelectorAll('.dropdown-item');
+  if (e.key === 'ArrowDown') { e.preventDefault(); activeIdx = Math.min(activeIdx+1, items.length-1); hilite(items); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); activeIdx = Math.max(activeIdx-1, 0); hilite(items); }
+  else if (e.key === 'Enter') { e.preventDefault(); if (activeIdx >= 0 && filtered[activeIdx]) pick(filtered[activeIdx]); else triggerSearch(); }
+  else if (e.key === 'Escape') dropdown.classList.remove('show');
+});
+
+function hilite(items) {
+  items.forEach((el,i) => el.classList.toggle('active', i===activeIdx));
+  if (activeIdx >= 0) items[activeIdx]?.scrollIntoView({block:'nearest'});
+}
+
+function renderDropdown() {
+  if (!filtered.length) { dropdown.classList.remove('show'); return; }
+  dropdown.innerHTML = filtered.map((s,i) => `
+    <div class="dropdown-item" data-i="${i}">
+      <span class="di-abbr">${s["Abb."]}</span>
+      <span class="di-name">${s.State}</span>
+      <span class="di-compact ${s.Compact==='Compact'?'c':'s'}">${s.Compact}</span>
+    </div>`).join('');
+  dropdown.classList.add('show');
+  dropdown.querySelectorAll('.dropdown-item').forEach((el,i) => {
+    el.addEventListener('mousedown', e => { e.preventDefault(); pick(filtered[i]); });
+  });
+}
+
+function triggerSearch() {
+  const q = input.value.trim().toLowerCase();
+  const match = STATES.find(s => s.State.toLowerCase() === q || s["Abb."].toLowerCase() === q);
+  if (match) pick(match);
+  else if (filtered.length) pick(filtered[0]);
+}
+
+function quickSelect(name) {
+  const s = STATES.find(st => st.State === name);
+  if (s) { input.value = s.State; pick(s); }
+}
+
+function pick(state) {
+  input.value = state.State;
+  dropdown.classList.remove('show');
+  showResult(state);
+}
+
+function showResult(state) {
+  emptyState.style.display = 'none';
+  resultCard.classList.remove('show');
+  void resultCard.offsetWidth;
+
+  const vmsArr = state.VMS ? state.VMS.split(',').map(v=>v.trim()).filter(Boolean) : [];
+  const notesArr = state["Notes / Vendors"] ? state["Notes / Vendors"].split(',').map(v=>v.trim()).filter(Boolean) : [];
+  const borderArr = state["Bordering States"] ? state["Bordering States"].split(',').map(v=>v.trim()).filter(Boolean) : [];
+  const isCompact = state.Compact === 'Compact';
+
+  const vmsTags = vmsArr.length
+    ? vmsArr.map(v => `<span class="vms-tag"><span class="vms-tag-dot"></span>${v}</span>`).join('')
+    : `<span class="empty-val">No VMS vendors listed</span>`;
+
+  const notesTags = notesArr.length
+    ? notesArr.map(v => `<span class="vms-tag notes-tag"><span class="vms-tag-dot"></span>${v}</span>`).join('')
+    : `<span class="empty-val">No additional notes</span>`;
+
+  const borderChips = borderArr.length
+    ? borderArr.map(ab => {
+        const full = abbrMap[ab] || ab;
+        return `<span class="border-chip" onclick="pick(STATES.find(s=>s['Abb.']==='${ab}'));window.scrollTo({top:0,behavior:'smooth'})">
+          <span class="bc-abbr">${ab}</span>
+          <span class="bc-name">${full}</span>
+          <span class="bc-arrow">→</span>
+        </span>`;
+      }).join('')
+    : `<span class="empty-val">No bordering states</span>`;
+
+  resultCard.innerHTML = `
+    <div class="state-hero">
+      <div class="hero-left">
+        <div class="abbr-box">${state["Abb."]}</div>
+        <div class="hero-info">
+          <div class="hero-state-name">${state.State}</div>
+          <div class="hero-badges">
+            <span class="badge ${isCompact ? 'badge-compact' : 'badge-single'}">
+              ${isCompact ? '✓' : '○'} ${state.Compact} State
+            </span>
+            <span class="badge badge-tz">⏰ ${state["Time Zone"] || 'N/A'}</span>
+          </div>
+        </div>
+      </div>
+      <div class="hero-right">
+        <div class="hero-count">${String(STATES.indexOf(state)+1).padStart(2,'0')}</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="section">
+        <div class="section-label"><span class="section-label-icon">🏥</span> VMS Vendors</div>
+        <div class="tags-wrap">${vmsTags}</div>
+      </div>
+      <div class="section">
+        <div class="section-label"><span class="section-label-icon">📋</span> Notes / Additional Vendors</div>
+        <div class="tags-wrap">${notesTags}</div>
+      </div>
+      <div class="section">
+        <div class="section-label"><span class="section-label-icon">🗺️</span> Bordering States — click any to explore</div>
+        <div class="border-chips">${borderChips}</div>
+      </div>
+    </div>
+  `;
+
+  resultCard.classList.add('show');
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.search-wrap')) dropdown.classList.remove('show');
+});
+</script>
+</body>
+</html>
