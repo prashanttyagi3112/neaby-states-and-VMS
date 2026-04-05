@@ -1,0 +1,1379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HC Candidate Rate Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;1,9..144,300&family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #161a22;
+    --surface2: #1e2330;
+    --border: #2a3040;
+    --accent: #00e5a0;
+    --accent2: #ff6b35;
+    --accent3: #5b8fff;
+    --text: #e8eaf0;
+    --muted: #6b7694;
+    --warn: #ffb347;
+    --danger: #ff4d6d;
+    --green: #00e5a0;
+    --red: #ff4d6d;
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Space Grotesk', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: 
+      linear-gradient(rgba(0,229,160,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,160,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 20px 80px;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 40px;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .logo-block h1 {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(24px, 4vw, 38px);
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--text);
+    line-height: 1.1;
+  }
+
+  .logo-block h1 span {
+    color: var(--accent);
+  }
+
+  .logo-block p {
+    color: var(--muted);
+    font-size: 13px;
+    margin-top: 6px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .version-badge {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    white-space: nowrap;
+    align-self: flex-start;
+    margin-top: 8px;
+  }
+
+  /* Section layout */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+  }
+
+  @media (max-width: 700px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+    transition: border-color 0.2s;
+  }
+
+  .card:hover { border-color: #3a4560; }
+
+  .card-title {
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-title::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  /* Inputs */
+  .field {
+    margin-bottom: 14px;
+  }
+
+  label {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 5px;
+    font-weight: 500;
+    letter-spacing: 0.2px;
+  }
+
+  input[type="text"],
+  input[type="number"],
+  select {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px;
+    padding: 9px 12px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    -webkit-appearance: none;
+  }
+
+  input:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0,229,160,0.1);
+  }
+
+  input[type="number"] {
+    font-family: 'DM Mono', monospace;
+  }
+
+  select {
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath fill='%236b7694' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+  }
+
+  /* Input with prefix */
+  .input-wrap {
+    position: relative;
+  }
+
+  .prefix {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    pointer-events: none;
+  }
+
+  .input-wrap input {
+    padding-left: 26px;
+  }
+
+  .suffix {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    pointer-events: none;
+  }
+
+  /* Results panel */
+  .results-panel {
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 16px;
+    position: sticky;
+    top: 20px;
+  }
+
+  .results-panel .card-title {
+    color: var(--accent);
+  }
+
+  .metric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+
+  .metric-row:last-child { border-bottom: none; }
+
+  .metric-label { color: var(--muted); }
+
+  .metric-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .metric-value.pos { color: var(--green); }
+  .metric-value.neg { color: var(--red); }
+  .metric-value.warn { color: var(--warn); }
+  .metric-value.neutral { color: var(--text); }
+
+  .big-metric {
+    text-align: center;
+    padding: 20px 0 16px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+
+  .big-metric .label {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+
+  .big-metric .value {
+    font-family: 'Fraunces', serif;
+    font-size: 42px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .big-metric .pct {
+    font-size: 15px;
+    margin-top: 4px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* Status bar */
+  .status-bar {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .status-dot.ok { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .status-dot.warn { background: var(--warn); box-shadow: 0 0 8px var(--warn); }
+  .status-dot.bad { background: var(--red); box-shadow: 0 0 8px var(--red); }
+
+  /* Punch list */
+  .punch-list {
+    list-style: none;
+  }
+
+  .punch-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--warn);
+    padding: 4px 0;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .punch-item::before {
+    content: '⚠';
+    flex-shrink: 0;
+    font-size: 11px;
+    margin-top: 1px;
+  }
+
+  /* Section heading */
+  .section-heading {
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin: 28px 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .section-heading::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Auto-calc display */
+  .auto-field {
+    background: var(--surface2);
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+    padding: 9px 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    color: var(--accent3);
+    min-height: 38px;
+  }
+
+  /* Layout: 2 col with sticky sidebar */
+  .main-layout {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 16px;
+    align-items: start;
+  }
+
+  @media (max-width: 900px) {
+    .main-layout { grid-template-columns: 1fr; }
+    .results-panel { position: static; }
+  }
+
+  /* Divider line in financial summary */
+  .fin-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 4px 0;
+  }
+
+  .fin-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 7px 0;
+    font-size: 12px;
+  }
+
+  .fin-row .fl { color: var(--muted); }
+  .fin-row .fr { font-family: 'DM Mono', monospace; color: var(--text); }
+
+  .fin-row.total .fl { color: var(--text); font-weight: 600; font-size: 13px; }
+  .fin-row.total .fr { font-weight: 600; font-size: 14px; }
+
+  .reset-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 12px;
+    padding: 7px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-top: 12px;
+    width: 100%;
+  }
+
+  .reset-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .copy-btn {
+    background: var(--accent);
+    border: none;
+    color: #0d0f14;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 9px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-top: 8px;
+    width: 100%;
+  }
+
+  .copy-btn:hover { opacity: 0.85; }
+  .copy-btn:active { transform: scale(0.97); }
+
+  .tip {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+
+  .tab-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px;
+    padding: 10px 16px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color 0.15s;
+  }
+
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  /* Margin slab indicator */
+  .slab-indicator {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    margin-top: 12px;
+  }
+
+  .slab-bar {
+    height: 8px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 10px 0 6px;
+    position: relative;
+  }
+
+  .slab-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.4s ease, background 0.3s;
+    min-width: 2px;
+  }
+
+  .slab-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .ghost { color: var(--muted); font-family: 'DM Mono', monospace; font-size: 13px; }
+
+  /* Animations */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .card { animation: fadeIn 0.4s ease both; }
+
+  .animated-value {
+    transition: color 0.3s;
+  }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    padding: 32px 0 0;
+    color: var(--muted);
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* GitHub CTA */
+  .github-cta {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .github-cta p {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .github-cta p strong { color: var(--text); }
+
+  .github-steps {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    line-height: 1.8;
+  }
+
+  .github-steps .step { color: var(--accent3); }
+
+  code {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <header>
+    <div class="logo-block">
+      <h1>HC Rate <span>Calculator</span></h1>
+      <p>Healthcare Candidate Pay Package · v23.02.20.a25</p>
+    </div>
+    <div class="version-badge">LanceSoft Internal Tool</div>
+  </header>
+
+  <!-- Status bar -->
+  <div class="status-bar" id="statusBar">
+    <div class="status-dot warn" id="statusDot"></div>
+    <span id="statusText">Fill in required fields to calculate margins</span>
+  </div>
+
+  <!-- Punch list -->
+  <div id="punchCard" class="card" style="padding:14px 20px; display:none;">
+    <div class="card-title">Punch List</div>
+    <ul class="punch-list" id="punchList"></ul>
+  </div>
+
+  <div class="main-layout">
+    <!-- LEFT: Inputs -->
+    <div>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('inputs', this)">Inputs</button>
+        <button class="tab-btn" onclick="switchTab('math', this)">Show the Math</button>
+        <button class="tab-btn" onclick="switchTab('deploy', this)">GitHub Deploy</button>
+      </div>
+
+      <!-- INPUTS TAB -->
+      <div class="tab-pane active" id="tab-inputs">
+
+        <div class="section-heading">Client Details</div>
+        <div class="card">
+          <div class="grid-2">
+            <div class="field">
+              <label>Client Name *</label>
+              <input type="text" id="clientName" placeholder="Enter Client Name" oninput="calc()">
+            </div>
+            <div class="field">
+              <label>MSP / VMS Fee %</label>
+              <div class="input-wrap">
+                <input type="number" id="mspFee" value="5" min="0" max="100" step="0.5" oninput="calc()">
+                <span class="suffix">%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-heading">Job Details</div>
+        <div class="card">
+          <div class="grid-2">
+            <div class="field">
+              <label>Job Title *</label>
+              <input type="text" id="jobTitle" placeholder="Enter Job Title" oninput="calc()">
+            </div>
+            <div class="field">
+              <label>JobDiva Ref #</label>
+              <input type="text" id="jobdiva" placeholder="99-123459" oninput="calc()">
+            </div>
+            <div class="field">
+              <label>Client Job #</label>
+              <input type="text" id="clientJob" placeholder="999999999999" oninput="calc()">
+            </div>
+            <div class="field">
+              <label>OT Multiplier (Client Bill Rate)</label>
+              <select id="otMultiplier" onchange="calc()">
+                <option value="0">No OT Mult</option>
+                <option value="1.25">1.25 times RT</option>
+                <option value="1.3" selected>1.3 times RT</option>
+                <option value="1.35">1.35 times RT</option>
+                <option value="1.4">1.4 times RT</option>
+                <option value="1.5">1.5 times RT</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>When Does Client Pay OT to LSI?</label>
+              <select id="otPolicy" onchange="calc()">
+                <option value="40">OT after 40 hrs</option>
+                <option value="48">OT after 48 hrs</option>
+                <option value="36">OT after 36 hrs</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>California OT Laws?</label>
+              <select id="caOT" onchange="calc()">
+                <option value="No">No</option>
+                <option value="Yes">Yes</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-heading">Candidate Details</div>
+        <div class="card">
+          <div class="grid-2">
+            <div class="field">
+              <label>Candidate Name *</label>
+              <input type="text" id="candName" placeholder="Enter Candidate Name" oninput="calc()">
+            </div>
+            <div class="field">
+              <label>Candidate Email</label>
+              <input type="text" id="candEmail" placeholder="candidate@email.com" oninput="calc()">
+            </div>
+            <div class="field">
+              <label>Recruiter Name</label>
+              <input type="text" id="recruiterName" placeholder="Enter Recruiter Name" oninput="calc()">
+            </div>
+            <div class="field">
+              <label>Recruiter Email</label>
+              <input type="text" id="recruiterEmail" placeholder="recruiter@email.com" oninput="calc()">
+            </div>
+            <div class="field">
+              <label>Engagement Type</label>
+              <select id="engType" onchange="calc()">
+                <option value="New">New</option>
+                <option value="Extension">Extension</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>OT Multiplier Override (Candidate)</label>
+              <select id="candOTOverride" onchange="calc()">
+                <option value="min">Min req. per law (1.5x)</option>
+                <option value="1.25">1.25x</option>
+                <option value="1.3">1.3x</option>
+                <option value="1.5">1.5x</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-heading">Bill Rates</div>
+        <div class="card">
+          <div class="grid-3">
+            <div class="field">
+              <label>Bill Rate RT</label>
+              <div class="input-wrap">
+                <span class="prefix">$</span>
+                <input type="number" id="billRT" value="0" min="0" step="0.25" oninput="calc()">
+              </div>
+            </div>
+            <div class="field">
+              <label>Bill Rate OT (auto)</label>
+              <div class="auto-field" id="billOT_display">—</div>
+              <p class="tip">= RT × OT multiplier</p>
+            </div>
+            <div class="field">
+              <label>Bill Rate Holiday</label>
+              <div class="input-wrap">
+                <span class="prefix">$</span>
+                <input type="number" id="billHoliday" value="0" min="0" step="0.25" oninput="calc()">
+              </div>
+            </div>
+            <div class="field">
+              <label>Bill Rate On-Call</label>
+              <div class="input-wrap">
+                <span class="prefix">$</span>
+                <input type="number" id="billOnCall" value="0" min="0" step="0.25" oninput="calc()">
+              </div>
+            </div>
+            <div class="field">
+              <label>Bill Rate Call Back</label>
+              <div class="input-wrap">
+                <span class="prefix">$</span>
+                <input type="number" id="billCallBack" value="0" min="0" step="0.25" oninput="calc()">
+              </div>
+            </div>
+            <div class="field">
+              <label>Bill Rate Charge</label>
+              <div class="input-wrap">
+                <span class="prefix">$</span>
+                <input type="number" id="billCharge" value="0" min="0" step="0.25" oninput="calc()">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-heading">Candidate Pay Rates</div>
+        <div class="card">
+          <div class="grid-3">
+            <div class="field">
+              <label>W2 Pay Rate RT *</label>
+              <div class="input-wrap">
+                <span class="prefix">$</span>
+                <input type="number" id="payRT" value="0" min="0" step="0.25" oninput="calc()">
+              </div>
+            </div>
+            <div class="field">
+              <label>W2 Pay Rate OT (auto)</label>
+              <div class="auto-field" id="payOT_display">—</div>
+              <p class="tip">= RT × 1.5 (or override)</p>
+            </div>
+            <div class="field">
+              <label>Weekly Per Diem</label>
+              <div class="input-wrap">
+                <span class="prefix">$</span>
+                <input type="number" id="perDiem" value="0" min="0" step="10" oninput="calc()">
+              </div>
+            </div>
+            <div class="field">
+              <label>W2 Pay Rate Holiday</label>
+              <div class="input-wrap">
+                <span class="prefix">$</span>
+                <input type="number" id="payHoliday" value="0" min="0" step="0.25" oninput="calc()">
+              </div>
+            </div>
+            <div class="field">
+              <label>W2 Pay Rate On-Call</label>
+              <div class="input-wrap">
+                <span class="prefix">$</span>
+                <input type="number" id="payOnCall" value="0" min="0" step="0.25" oninput="calc()">
+              </div>
+            </div>
+            <div class="field">
+              <label>W2 Pay Rate Call Back</label>
+              <div class="input-wrap">
+                <span class="prefix">$</span>
+                <input type="number" id="payCallBack" value="0" min="0" step="0.25" oninput="calc()">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-heading">Bonus Details (W2)</div>
+        <div class="card">
+          <div class="grid-3">
+            <div class="field">
+              <label>Joining Bonus</label>
+              <div class="input-wrap">
+                <span class="prefix">$</span>
+                <input type="number" id="bonusJoining" value="0" min="0" oninput="calc()">
+              </div>
+            </div>
+            <div class="field">
+              <label>Extension Bonus</label>
+              <div class="input-wrap">
+                <span class="prefix">$</span>
+                <input type="number" id="bonusExtension" value="0" min="0" oninput="calc()">
+              </div>
+            </div>
+            <div class="field">
+              <label>Travel Bonus</label>
+              <div class="input-wrap">
+                <span class="prefix">$</span>
+                <input type="number" id="bonusTravel" value="0" min="0" oninput="calc()">
+              </div>
+            </div>
+            <div class="field">
+              <label>Completion Bonus</label>
+              <div class="input-wrap">
+                <span class="prefix">$</span>
+                <input type="number" id="bonusCompletion" value="0" min="0" oninput="calc()">
+              </div>
+            </div>
+            <div class="field">
+              <label>Non-Reimbursable Bonus</label>
+              <div class="input-wrap">
+                <span class="prefix">$</span>
+                <input type="number" id="bonusNonReimb" value="0" min="0" oninput="calc()">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-heading">Contract Details</div>
+        <div class="card">
+          <div class="grid-3">
+            <div class="field">
+              <label>Contract Duration (weeks)</label>
+              <input type="number" id="contractWeeks" value="13" min="1" oninput="calc()">
+            </div>
+            <div class="field">
+              <label>Expected Hours / Week</label>
+              <input type="number" id="hoursPerWeek" value="32" min="1" max="80" oninput="calc()">
+            </div>
+            <div class="field">
+              <label>Expected Hours / Shift</label>
+              <input type="number" id="hoursPerShift" value="8" min="1" max="24" oninput="calc()">
+            </div>
+            <div class="field">
+              <label>Who Pays Orientation?</label>
+              <select id="orientationPayer" onchange="calc()">
+                <option value="Client">Client</option>
+                <option value="LanceSoft">LanceSoft</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-heading">Admin / Cost Settings</div>
+        <div class="card">
+          <div class="grid-3">
+            <div class="field">
+              <label>Payroll Taxes (Soc Sec etc.)</label>
+              <div class="input-wrap">
+                <input type="number" id="payrollTax" value="12" min="0" max="50" step="0.5" oninput="calc()">
+                <span class="suffix">%</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>Overhead Burden</label>
+              <div class="input-wrap">
+                <input type="number" id="overhead" value="5" min="0" max="50" step="0.5" oninput="calc()">
+                <span class="suffix">%</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>Incremental Recruiting Cost</label>
+              <div class="input-wrap">
+                <span class="prefix">$</span>
+                <input type="number" id="recruitCost" value="1000" min="0" oninput="calc()">
+              </div>
+            </div>
+            <div class="field">
+              <label>Credentialing Cost (New only)</label>
+              <div class="input-wrap">
+                <span class="prefix">$</span>
+                <input type="number" id="credCost" value="800" min="0" oninput="calc()">
+              </div>
+            </div>
+            <div class="field">
+              <label>Background Cost (New only)</label>
+              <div class="input-wrap">
+                <span class="prefix">$</span>
+                <input type="number" id="bgCost" value="200" min="0" oninput="calc()">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div><!-- /tab-inputs -->
+
+      <!-- SHOW THE MATH TAB -->
+      <div class="tab-pane" id="tab-math">
+        <div class="card">
+          <div class="card-title">Step-by-Step Margin Calculation</div>
+          <div id="mathContent" style="font-family:'DM Mono',monospace; font-size:12px; line-height:2; color:var(--text);">
+            Fill in the Inputs tab to see the math here.
+          </div>
+        </div>
+      </div>
+
+      <!-- GITHUB DEPLOY TAB -->
+      <div class="tab-pane" id="tab-deploy">
+        <div class="card">
+          <div class="card-title">Host This Calculator Free on GitHub Pages</div>
+          <p style="font-size:13px; color:var(--muted); margin-bottom:18px; line-height:1.7;">
+            GitHub Pages hosts static HTML files for free. Once set up, your calculator will be live at a public URL — no server, no cost.
+          </p>
+          <div class="github-steps">
+            <div><span class="step">Step 1.</span> Create a free account at <strong style="color:var(--text)">github.com</strong> if you don't have one.</div>
+            <div><span class="step">Step 2.</span> Click <strong style="color:var(--text)">+ New repository</strong> → name it something like <code>rate-calculator</code> → check <em>Public</em> → Create.</div>
+            <div><span class="step">Step 3.</span> Inside the repo click <strong style="color:var(--text)">Add file → Upload files</strong> → drag and drop the <code>index.html</code> file you downloaded.</div>
+            <div><span class="step">Step 4.</span> Go to <strong style="color:var(--text)">Settings → Pages</strong> → under <em>Source</em> select <em>main</em> branch → click Save.</div>
+            <div><span class="step">Step 5.</span> Wait ~60 seconds → your calculator is live at:<br><code>https://YOUR-USERNAME.github.io/rate-calculator/</code></div>
+            <div style="margin-top:14px; color:var(--muted);">
+              💡 To update later: go back to the repo → click <code>index.html</code> → pencil icon → paste updated code → Commit changes.
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:0;">
+          <div class="card-title">Access Control Tips</div>
+          <p style="font-size:12px; color:var(--muted); line-height:1.7;">
+            GitHub Pages public repos are visible to anyone with the URL. To restrict access:
+            <br>• Share the link only with your team (no login = security by obscurity)
+            <br>• For real auth: use GitHub Enterprise or add a password prompt in JavaScript
+            <br>• Consider Netlify or Cloudflare Pages if you need more control
+          </p>
+        </div>
+      </div>
+
+    </div><!-- /left -->
+
+    <!-- RIGHT: Results -->
+    <div>
+      <div class="results-panel">
+        <div class="card-title">Financial Summary</div>
+
+        <div class="big-metric">
+          <div class="label">Hourly Net Margin</div>
+          <div class="value animated-value" id="netMarginHourly">$—</div>
+          <div class="pct animated-value" id="netMarginPct" style="color:var(--muted)">—%</div>
+        </div>
+
+        <div class="fin-row">
+          <span class="fl">Revenue (RT) / wk</span>
+          <span class="fr" id="revRT">$0.00</span>
+        </div>
+        <div class="fin-row">
+          <span class="fl">Revenue (OT) / wk</span>
+          <span class="fr" id="revOT">$0.00</span>
+        </div>
+        <hr class="fin-divider">
+        <div class="fin-row">
+          <span class="fl">W2 Comp (RT) / wk</span>
+          <span class="fr" id="compRT" style="color:var(--red)">$0.00</span>
+        </div>
+        <div class="fin-row">
+          <span class="fl">W2 Comp (OT) / wk</span>
+          <span class="fr" id="compOT" style="color:var(--red)">$0.00</span>
+        </div>
+        <div class="fin-row">
+          <span class="fl">Per Diem / wk</span>
+          <span class="fr" id="perDiemWk" style="color:var(--red)">$0.00</span>
+        </div>
+        <div class="fin-row total">
+          <span class="fl">= Gross Margin / wk</span>
+          <span class="fr" id="grossMarginWk">$0.00</span>
+        </div>
+        <hr class="fin-divider">
+        <div class="fin-row">
+          <span class="fl">- MSP/VMS Fee / wk</span>
+          <span class="fr" id="mspWk" style="color:var(--red)">$0.00</span>
+        </div>
+        <div class="fin-row">
+          <span class="fl">- Payroll Load / wk</span>
+          <span class="fr" id="payrollWk" style="color:var(--red)">$0.00</span>
+        </div>
+        <div class="fin-row">
+          <span class="fl">- Recruiting Cost / wk</span>
+          <span class="fr" id="recruitWk" style="color:var(--red)">$0.00</span>
+        </div>
+        <div class="fin-row">
+          <span class="fl">- Onboarding Cost / wk</span>
+          <span class="fr" id="onboardWk" style="color:var(--red)">$0.00</span>
+        </div>
+        <div class="fin-row total">
+          <span class="fl">= Net Margin / wk</span>
+          <span class="fr" id="netMarginWk">$0.00</span>
+        </div>
+        <div class="fin-row">
+          <span class="fl">Net Margin / project</span>
+          <span class="fr" id="netMarginProj">$0.00</span>
+        </div>
+
+        <!-- Margin slab -->
+        <div class="slab-indicator">
+          <div style="display:flex; justify-content:space-between; font-size:11px;">
+            <span style="color:var(--muted); font-family:'DM Mono',monospace;">Margin vs. 15% target</span>
+            <span id="slabPct" style="font-family:'DM Mono',monospace; font-size:11px; color:var(--muted)">—</span>
+          </div>
+          <div class="slab-bar">
+            <div class="slab-fill" id="slabFill" style="width:0%"></div>
+          </div>
+          <div class="slab-labels">
+            <span>0%</span>
+            <span style="color:var(--accent)">15% target</span>
+            <span>30%+</span>
+          </div>
+        </div>
+
+        <!-- Weekly pay package -->
+        <div style="margin-top:16px;">
+          <div class="card-title" style="margin-top:0;">Candidate Pay Package / Wk</div>
+          <div class="fin-row">
+            <span class="fl">W2 Wage (RT+OT)</span>
+            <span class="fr" id="candWage">$0.00</span>
+          </div>
+          <div class="fin-row">
+            <span class="fl">Per Diem (nontaxable)</span>
+            <span class="fr" id="candPerDiem">$0.00</span>
+          </div>
+          <div class="fin-row total">
+            <span class="fl">Total Weekly Package</span>
+            <span class="fr" id="candTotal">$0.00</span>
+          </div>
+          <div class="fin-row">
+            <span class="fl">Blended Hourly Rate</span>
+            <span class="fr" id="candBlended">$0.00</span>
+          </div>
+        </div>
+
+        <button class="copy-btn" onclick="copyReport()">📋 Copy Pay Package Report</button>
+        <button class="reset-btn" onclick="resetForm()">↺ Reset All Fields</button>
+      </div>
+    </div><!-- /right -->
+
+  </div><!-- /main-layout -->
+
+  <footer>
+    HC Rate Calculator &nbsp;·&nbsp; Based on LanceSoft Pay Package Tool v23.02.20.a25 &nbsp;·&nbsp; All calculations are estimates
+  </footer>
+</div><!-- /wrapper -->
+
+<script>
+// ── Helpers ────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const fmt = (n, d=2) => isFinite(n) ? n.toFixed(d) : '—';
+const fmtUSD = n => isFinite(n) ? (n < 0 ? '-$' + Math.abs(n).toFixed(2) : '$' + n.toFixed(2)) : '—';
+const fmtPct = n => isFinite(n) ? (n*100).toFixed(1) + '%' : '—';
+const num = id => parseFloat($(id).value) || 0;
+const str = id => $(id).value.trim();
+const sel = id => $(id).value;
+
+function setColor(id, val, refEl) {
+  const el = refEl || $(id);
+  if (!el) return;
+  el.style.color = val > 0 ? 'var(--green)' : val < 0 ? 'var(--red)' : 'var(--text)';
+}
+
+// ── Core Calculation ───────────────────────────────────────────────────────
+function calc() {
+  const billRT         = num('billRT');
+  const otMult         = parseFloat(sel('otMultiplier')) || 0;
+  const billOT         = otMult > 0 ? billRT * otMult : 0;
+  const payRT          = num('payRT');
+  const candOT         = sel('candOTOverride') === 'min' ? 1.5 : parseFloat(sel('candOTOverride'));
+  const payOT          = payRT * candOT;
+  const perDiem        = num('perDiem');
+  const hoursPerWeek   = num('hoursPerWeek') || 32;
+  const hoursPerShift  = num('hoursPerShift') || 8;
+  const contractWeeks  = num('contractWeeks') || 13;
+  const mspPct         = num('mspFee') / 100;
+  const payrollPct     = num('payrollTax') / 100;
+  const overheadPct    = num('overhead') / 100;
+  const recruitCost    = num('recruitCost');
+  const credCost       = num('credCost');
+  const bgCost         = num('bgCost');
+  const engType        = sel('engType');
+  const otPolicy       = parseInt(sel('otPolicy')) || 40;
+  const caOT           = sel('caOT') === 'Yes';
+  const bonusTotal     = num('bonusJoining') + num('bonusExtension') + num('bonusTravel') + num('bonusCompletion') + num('bonusNonReimb');
+
+  // OT/RT hours split (simplified: assume weekly hours <= otPolicy → all RT)
+  const rtHours = Math.min(hoursPerWeek, otPolicy);
+  const otHours = Math.max(0, hoursPerWeek - otPolicy);
+
+  // Auto-fill displays
+  $('billOT_display').textContent = billOT > 0 ? '$' + billOT.toFixed(2) : '—';
+  $('payOT_display').textContent  = payRT > 0   ? '$' + payOT.toFixed(2)  : '—';
+
+  // Revenue per week
+  const revRTwk  = billRT * rtHours;
+  const revOTwk  = billOT * otHours;
+  const revTotal = revRTwk + revOTwk;
+
+  // W2 hourly comp per week
+  const compRTwk  = payRT * rtHours;
+  const compOTwk  = payOT * otHours;
+  const bonusPerHour = bonusTotal / Math.max(hoursPerWeek * contractWeeks, 1);
+
+  // Gross Margin / wk
+  const grossMarginWk = revTotal - compRTwk - compOTwk - perDiem;
+
+  // Deductions
+  const mspWk     = revTotal * mspPct;
+  const payloadWk = (compRTwk + compOTwk) * (payrollPct + overheadPct);
+  const recruitWk = recruitCost / Math.max(contractWeeks, 1);
+  const onboardWk = engType === 'New' ? (credCost + bgCost) / Math.max(contractWeeks, 1) : 0;
+
+  const netMarginWk   = grossMarginWk - mspWk - payloadWk - recruitWk - onboardWk;
+  const netMarginProj = netMarginWk * contractWeeks;
+  const netMarginHrly = netMarginWk / Math.max(hoursPerWeek, 1);
+  const netMarginPct  = revTotal > 0 ? netMarginWk / revTotal : 0;
+
+  // Candidate pay package
+  const candWage    = compRTwk + compOTwk;
+  const candPerDiem = perDiem;
+  const candTotal   = candWage + candPerDiem;
+  const candBlended = candTotal / Math.max(hoursPerWeek, 1);
+
+  // ── Update DOM ────────────────────────────────────────────────────────────
+
+  // Big metric
+  const nmEl  = $('netMarginHourly');
+  const nmPct = $('netMarginPct');
+
+  if (billRT > 0 || payRT > 0) {
+    nmEl.textContent = fmtUSD(netMarginHrly);
+    nmPct.textContent = fmtPct(netMarginPct) + ' net margin';
+    setColor(null, netMarginHrly, nmEl);
+    setColor(null, netMarginPct, nmPct);
+  } else {
+    nmEl.textContent = '$—';
+    nmPct.textContent = '—%';
+    nmEl.style.color = 'var(--muted)';
+    nmPct.style.color = 'var(--muted)';
+  }
+
+  // Fin rows
+  const sets = [
+    ['revRT',       revRTwk,       null],
+    ['revOT',       revOTwk,       null],
+    ['compRT',      -compRTwk,     'var(--red)'],
+    ['compOT',      -compOTwk,     'var(--red)'],
+    ['perDiemWk',   -perDiem,      'var(--red)'],
+    ['grossMarginWk', grossMarginWk, null],
+    ['mspWk',       -mspWk,        'var(--red)'],
+    ['payrollWk',   -payloadWk,    'var(--red)'],
+    ['recruitWk',   -recruitWk,    'var(--red)'],
+    ['onboardWk',   -onboardWk,    'var(--red)'],
+    ['netMarginWk', netMarginWk,   null],
+    ['netMarginProj', netMarginProj, null],
+    ['candWage',    candWage,      null],
+    ['candPerDiem', candPerDiem,   null],
+    ['candTotal',   candTotal,     null],
+    ['candBlended', candBlended,   null],
+  ];
+
+  sets.forEach(([id, val, forceColor]) => {
+    const el = $(id);
+    if (!el) return;
+    el.textContent = fmtUSD(val);
+    if (forceColor) {
+      el.style.color = forceColor;
+    } else {
+      setColor(null, val, el);
+    }
+  });
+
+  // Slab
+  const pct = netMarginPct * 100;
+  const fillPct = Math.max(0, Math.min(100, (pct / 30) * 100));
+  $('slabFill').style.width = fillPct + '%';
+  $('slabFill').style.background = pct >= 15 ? 'var(--green)' : pct >= 10 ? 'var(--warn)' : 'var(--red)';
+  $('slabPct').textContent = isFinite(pct) ? pct.toFixed(1) + '%' : '—';
+  $('slabPct').style.color = pct >= 15 ? 'var(--green)' : pct >= 10 ? 'var(--warn)' : 'var(--red)';
+
+  // Status + punch list
+  updateStatus(billRT, payRT, netMarginPct, pct);
+
+  // Math tab
+  updateMath({ billRT, billOT, payRT, payOT, rtHours, otHours, hoursPerWeek, contractWeeks,
+    revRTwk, revOTwk, revTotal, compRTwk, compOTwk, perDiem, grossMarginWk,
+    mspWk, payloadWk, recruitWk, onboardWk, netMarginWk, netMarginProj, netMarginHrly, netMarginPct, mspPct, payrollPct, overheadPct });
+}
+
+// ── Status Bar & Punch List ────────────────────────────────────────────────
+function updateStatus(billRT, payRT, netMarginPct, pctNum) {
+  const punches = [];
+  if (!str('clientName')) punches.push('Must Enter Client Name');
+  if (!str('jobTitle'))   punches.push('Must Enter Job Title');
+  if (!str('candName'))   punches.push('Must Enter Candidate Name');
+  if (billRT <= 0)        punches.push('Enter a Bill Rate (RT)');
+  if (payRT  <= 0)        punches.push('Enter a W2 Pay Rate (RT)');
+
+  const punchCard = $('punchCard');
+  const punchList = $('punchList');
+  const dot       = $('statusDot');
+  const txt       = $('statusText');
+
+  if (punches.length) {
+    punchCard.style.display = 'block';
+    punchList.innerHTML = punches.map(p => `<li class="punch-item">${p}</li>`).join('');
+  } else {
+    punchCard.style.display = 'none';
+  }
+
+  if (punches.length > 2) {
+    dot.className = 'status-dot warn';
+    txt.textContent = 'Complete required fields to calculate margins';
+  } else if (!isFinite(pctNum) || pctNum < 10) {
+    dot.className = 'status-dot bad';
+    txt.textContent = pctNum < 0 ? 'Negative margin — review rates' : 'Margin below 10% threshold';
+  } else if (pctNum < 15) {
+    dot.className = 'status-dot warn';
+    txt.textContent = `${pctNum.toFixed(1)}% margin — below 15% target, review with manager`;
+  } else {
+    dot.className = 'status-dot ok';
+    txt.textContent = `${pctNum.toFixed(1)}% net margin — meets the ≥15% standard ✓`;
+  }
+}
+
+// ── Math Walkthrough ───────────────────────────────────────────────────────
+function updateMath(d) {
+  const { billRT, billOT, payRT, payOT, rtHours, otHours, hoursPerWeek, contractWeeks,
+    revRTwk, revOTwk, revTotal, compRTwk, compOTwk, perDiem, grossMarginWk,
+    mspWk, payloadWk, recruitWk, onboardWk, netMarginWk, netMarginProj, netMarginHrly, netMarginPct,
+    mspPct, payrollPct, overheadPct } = d;
+
+  const line = (label, val, color='') => 
+    `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border);${color?'color:'+color:''}"><span>${label}</span><span>${fmtUSD(val)}</span></div>`;
+  const header = h => `<div style="color:var(--accent);margin:14px 0 6px;font-size:11px;letter-spacing:1px;text-transform:uppercase;">${h}</div>`;
+
+  $('mathContent').innerHTML = `
+    ${header('Step 1 – Inputs')}
+    ${line('Bill Rate RT', billRT)}
+    ${line('Bill Rate OT (' + d.billOT.toFixed(2) + ')', billOT)}
+    ${line('W2 Pay RT', payRT)}
+    ${line('W2 Pay OT', payOT)}
+    ${line('Expected hrs/wk', hoursPerWeek, '')}
+    <div style="padding:3px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;"><span>RT / OT hours split</span><span>${rtHours}h RT + ${otHours}h OT</span></div>
+
+    ${header('Step 2 – Revenue / wk')}
+    ${line('+ Revenue RT (' + billRT.toFixed(2) + ' × ' + rtHours + 'h)', revRTwk, 'var(--green)')}
+    ${line('+ Revenue OT (' + billOT.toFixed(2) + ' × ' + otHours + 'h)', revOTwk, 'var(--green)')}
+    ${line('= Total Revenue', revTotal, 'var(--accent)')}
+
+    ${header('Step 3 – Gross Margin / wk')}
+    ${line('- W2 RT (' + payRT.toFixed(2) + ' × ' + rtHours + 'h)', -compRTwk, 'var(--red)')}
+    ${line('- W2 OT (' + payOT.toFixed(2) + ' × ' + otHours + 'h)', -compOTwk, 'var(--red)')}
+    ${line('- Per Diem', -perDiem, 'var(--red)')}
+    ${line('= Gross Margin', grossMarginWk, grossMarginWk >= 0 ? 'var(--green)' : 'var(--red)')}
+
+    ${header('Step 4 – Net Margin Impacts / wk')}
+    ${line('- MSP/VMS Fee (' + (mspPct*100).toFixed(1) + '% of rev)', -mspWk, 'var(--red)')}
+    ${line('- Payroll Load (' + ((payrollPct+overheadPct)*100).toFixed(0) + '% of W2 comp)', -payloadWk, 'var(--red)')}
+    ${line('- Recruiting Cost (÷' + contractWeeks + ' wks)', -recruitWk, 'var(--red)')}
+    ${line('- Onboarding Cost (÷' + contractWeeks + ' wks)', -onboardWk, 'var(--red)')}
+
+    ${header('Step 5 – Net Margin')}
+    ${line('= Net Margin / wk', netMarginWk, netMarginWk >= 0 ? 'var(--green)' : 'var(--red)')}
+    ${line('= Net Margin / project (×' + contractWeeks + ' wks)', netMarginProj, netMarginProj >= 0 ? 'var(--green)' : 'var(--red)')}
+    <div style="padding:3px 0;display:flex;justify-content:space-between;"><span>Net Margin %</span><span style="color:${netMarginPct >= 0.15 ? 'var(--green)' : netMarginPct >= 0.10 ? 'var(--warn)' : 'var(--red)'}">${fmtPct(netMarginPct)}</span></div>
+    <div style="padding:3px 0;display:flex;justify-content:space-between;"><span>Hourly Net Margin</span><span style="color:${netMarginHrly >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtUSD(netMarginHrly)}</span></div>
+  `;
+}
+
+// ── Tab Switching ──────────────────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  $('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ── Copy Report ────────────────────────────────────────────────────────────
+function copyReport() {
+  const client = str('clientName') || '<Client>';
+  const cand   = str('candName')   || '<Candidate>';
+  const job    = str('jobTitle')   || '<Job Title>';
+  const wks    = num('contractWeeks');
+  const hpw    = num('hoursPerWeek');
+  const payRT  = num('payRT');
+  const candOT = sel('candOTOverride') === 'min' ? 1.5 : parseFloat(sel('candOTOverride'));
+  const payOT  = payRT * candOT;
+  const pd     = num('perDiem');
+  const bj     = num('bonusJoining');
+  const be     = num('bonusExtension');
+  const bt     = num('bonusTravel');
+  const bc     = num('bonusCompletion');
+  const bn     = num('bonusNonReimb');
+
+  const rtHours = Math.min(hpw, parseInt(sel('otPolicy')));
+  const otHours = Math.max(0, hpw - rtHours);
+  const wage    = payRT * rtHours + payOT * otHours;
+  const total   = wage + pd;
+  const blended = total / Math.max(hpw, 1);
+
+  const text = `CONTRACT DETAILS
+================
+Contract Duration: ${wks} weeks
+Expected Hours/Week: ${hpw}
+Expected Hours/Shift: ${num('hoursPerShift')}
+
+HOURLY PAY RATE
+===============
+W2 Pay Rate RT (Regular Time): $${payRT.toFixed(2)}
+W2 Pay Rate OT (Over Time): $${payOT.toFixed(2)}
+
+ADDITIONAL PAY DETAILS
+======================
+Weekly Per Diem: $${pd.toFixed(2)}
+Joining Bonus: $${bj.toFixed(2)}
+Extension Bonus: $${be.toFixed(2)}
+Travel Bonus: $${bt.toFixed(2)}
+Completion Bonus: $${bc.toFixed(2)}
+Non-Reimbursable Bonus: $${bn.toFixed(2)}
+
+WEEKLY GROSS PAY PACKAGE (Taxable + Nontaxable)
+================================================
+W2 Wage (RT+OT based on expected hrs): $${wage.toFixed(2)}
+Nontaxable Weekly Per Diem: $${pd.toFixed(2)}
+Total Weekly Gross Pay Package: $${total.toFixed(2)}
+Blended Hourly Rate: $${blended.toFixed(2)}
+
+Candidate: ${cand} | Client: ${client} | Job: ${job}`;
+
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => btn.textContent = '📋 Copy Pay Package Report', 2000);
+  });
+}
+
+// ── Reset ──────────────────────────────────────────────────────────────────
+function resetForm() {
+  if (!confirm('Reset all fields to defaults?')) return;
+  ['clientName','jobTitle','jobdiva','clientJob','candName','candEmail','recruiterName','recruiterEmail'].forEach(id => $(id).value = '');
+  ['billRT','billHoliday','billOnCall','billCallBack','billCharge','payRT','payHoliday','payOnCall','payCallBack','perDiem','bonusJoining','bonusExtension','bonusTravel','bonusCompletion','bonusNonReimb'].forEach(id => $(id).value = 0);
+  $('mspFee').value     = 5;
+  $('payrollTax').value = 12;
+  $('overhead').value   = 5;
+  $('recruitCost').value = 1000;
+  $('credCost').value   = 800;
+  $('bgCost').value     = 200;
+  $('contractWeeks').value = 13;
+  $('hoursPerWeek').value  = 32;
+  $('hoursPerShift').value  = 8;
+  $('otMultiplier').value = '1.3';
+  $('otPolicy').value     = '40';
+  $('caOT').value         = 'No';
+  $('candOTOverride').value = 'min';
+  $('engType').value        = 'New';
+  $('orientationPayer').value = 'Client';
+  calc();
+}
+
+// Init
+calc();
+</script>
+</body>
+</html>
